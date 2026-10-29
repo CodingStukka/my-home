@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en" data-title-en="My Home — your household budget, on your own server" data-title-nl="My Home — je huishoudbudget, op je eigen server">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Home — your household budget, on your own server</title>
+<meta name="description" content="My Home is a household budget for one or more people: private, on your own server, and offline on your phone. Install it with Docker in a few steps.">
+<meta name="theme-color" content="#f4f4f6">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="alternate" hreflang="en" href="?lang=en">
+<link rel="alternate" hreflang="nl-BE" href="?lang=nl">
+<link rel="stylesheet" href="style.css">
+<script>
+  // The language: ?lang=nl or ?lang=en, else the first of the browser's languages that is
+  // Dutch or English, else English. Set before the page shows, so nothing flickers.
+  (function () {
+    var q = (location.search.match(/[?&]lang=(nl|en)\b/) || [])[1];
+    if (!q) {
+      var list = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+      for (var i = 0; i < list.length && !q; i++) q = /^nl\b/i.test(list[i]) ? "nl" : /^en\b/i.test(list[i]) ? "en" : null;
+    }
+    var html = document.documentElement;
+    html.lang = q === "nl" ? "nl-BE" : "en";
+    html.className = "js";
+    document.title = html.getAttribute(q === "nl" ? "data-title-nl" : "data-title-en");
+  })();
+</script>
+</head>
+<body>
+<!-- The app's own icons (web/src/lib/icons.js) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-archive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></symbol>
+<symbol id="i-arrow-left-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></symbol>
+<symbol id="i-arrow-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+<symbol id="i-database" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></symbol>
+<symbol id="i-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+<symbol id="i-house" viewBox="0 0 14 14"><path fill="currentColor" d="M6.82 0.6q-0.48 0.03-0.85 0.32-0.13 0.1-2.21 1.89l-1.61 1.39q-0.45 0.39-0.59 0.56-0.11 0.11-0.2 0.28l0 0.01q-0.08 0.15-0.13 0.31l-0.05 0.15 0.01 5.46q0 0.43 0.03 0.52 0.14 0.49 0.47 0.82 0.33 0.33 0.82 0.47 0.09 0.03 0.71 0.03l3.78 0.01 3.78-0.01q0.63 0 0.71-0.03 0.49-0.14 0.82-0.47 0.33-0.33 0.47-0.82 0.03-0.09 0.03-0.52l0.01-5.46-0.05-0.15q-0.04-0.15-0.13-0.31l0-0.01q-0.09-0.17-0.18-0.28-0.14-0.17-0.59-0.55l-3.78-3.25q-0.53-0.43-1.27-0.37z m0.43 1.22q0.08 0.04 2.12 1.78 2.04 1.74 2.15 1.86l0.03 0.03q0.07 0.07 0.09 0.17 0.01 0.13 0.03 0.59l0 4.97-0.04 0.1q-0.14 0.28-0.43 0.33-0.1 0.03-0.98 0.03l-0.88 0 0-3.83q0-0.39-0.03-0.53-0.01-0.1-0.07-0.21l-0.03-0.04q-0.1-0.22-0.3-0.38-0.2-0.15-0.44-0.23-0.1-0.03-0.31-0.03l-1.15 0-1.15 0q-0.21 0-0.31 0.03-0.24 0.07-0.44 0.23-0.2 0.15-0.3 0.38l-0.03 0.04q-0.06 0.11-0.07 0.21-0.03 0.14-0.03 0.53l0 3.83-0.88 0q-0.88 0-0.98-0.03-0.29-0.06-0.43-0.33l-0.04-0.1 0-5q0.01-0.45 0.04-0.59 0.01-0.1 0.09-0.15l0.05-0.06q0.09-0.08 2.08-1.8 2-1.72 2.09-1.77 0.11-0.09 0.27-0.09 0.16-0.01 0.29 0.06z m0.92 7.8l0 2.06-2.35 0 0-4.1 2.35 0 0 2.04z"/></symbol>
+<symbol id="i-info" viewBox="0 0 14 14"><path fill="currentColor" d="M6.69 0.6q-1.16 0.04-2.23 0.51-1.06 0.46-1.9 1.27-0.84 0.8-1.34 1.85-0.49 1.01-0.6 2.16-0.03 0.19-0.03 0.62 0 0.42 0.03 0.62 0.11 1.15 0.6 2.16 0.66 1.4 1.9 2.34 1.24 0.94 2.75 1.2 0.53 0.1 1.13 0.1 0.76 0 1.43-0.15 0.68-0.15 1.35-0.48 1.26-0.62 2.16-1.7 0.9-1.08 1.25-2.44 0.29-1.12 0.18-2.25-0.11-1.13-0.6-2.17-0.59-1.2-1.62-2.08-1.03-0.88-2.31-1.27-1.01-0.31-2.16-0.25z m0.97 1.19q1.08 0.14 1.99 0.68 0.92 0.54 1.56 1.41 0.83 1.1 1.01 2.55 0.01 0.17 0.01 0.57 0 0.41-0.01 0.57-0.14 1.16-0.72 2.13-0.58 0.96-1.53 1.62-0.48 0.33-1.05 0.56-0.57 0.22-1.19 0.31-0.25 0.04-0.73 0.04-0.48 0-0.73-0.04-1.08-0.15-1.96-0.69-0.88-0.53-1.53-1.39-0.83-1.1-1.01-2.55-0.01-0.17-0.01-0.57 0-0.41 0.01-0.57 0.14-1.12 0.67-2.05 0.53-0.93 1.43-1.59 0.54-0.41 1.21-0.67 0.67-0.27 1.33-0.32l0.25-0.03q0.1-0.01 0.48 0 0.38 0.01 0.52 0.03z m-0.76 2.31q-0.18 0.03-0.32 0.17-0.21 0.21-0.15 0.51 0.05 0.29 0.32 0.42 0.1 0.04 0.25 0.04 0.25 0 0.42-0.17 0.13-0.13 0.15-0.31 0.05-0.29-0.16-0.5-0.21-0.21-0.52-0.16z m-0.05 2.34q-0.25 0.09-0.38 0.31l-0.04 0.09 0 2.46q0 0.18 0.03 0.27 0.04 0.08 0.12 0.17 0.09 0.08 0.19 0.13 0.11 0.05 0.23 0.05 0.13 0 0.23-0.05 0.11-0.05 0.19-0.13 0.09-0.09 0.12-0.17 0.04-0.09 0.04-0.27l0-2.46-0.04-0.09q-0.1-0.18-0.28-0.27-0.09-0.04-0.23-0.05-0.14-0.01-0.18 0.01z"/></symbol>
+<symbol id="i-landmark" viewBox="0 0 14 14"><path fill="currentColor" d="M6.82 0.6q-0.25 0.01-0.45 0.1-0.14 0.05-2.44 1.19-2.3 1.13-2.39 1.19-0.24 0.14-0.34 0.41-0.1 0.27-0.01 0.55 0.07 0.22 0.23 0.38 0.16 0.16 0.4 0.23 0.09 0.01 5.18 0.01 5.1 0 5.18-0.01 0.21-0.06 0.38-0.21 0.31-0.28 0.28-0.7-0.03-0.43-0.36-0.65-0.11-0.07-2.04-1.02l-2.37-1.15q-0.43-0.21-0.53-0.24-0.35-0.11-0.71-0.07z m0.36 1.18q0.09 0.03 1.79 0.87l1.72 0.84-1.85 0.01q-1.85 0-3.7 0l-1.85-0.01 1.71-0.84q1.72-0.84 1.81-0.87 0.18-0.05 0.36 0z m-3.78 4.07q-0.1 0.01-0.17 0.05-0.08 0.03-0.15 0.13-0.08 0.09-0.11 0.17-0.03 0.08-0.03 0.37l0 4.1 0.04 0.09q0.04 0.07 0.13 0.15 0.09 0.08 0.16 0.13 0.08 0.04 0.25 0.04 0.17 0 0.24-0.04 0.08-0.04 0.16-0.13 0.09-0.09 0.13-0.15l0.04-0.09 0-3.91q0-0.39-0.03-0.52-0.01-0.09-0.06-0.15l-0.03-0.03q-0.1-0.13-0.25-0.18-0.15-0.06-0.31-0.03z m2.32 0q-0.13 0.01-0.25 0.11-0.12 0.09-0.17 0.22l-0.04 0.1 0 4.38 0.04 0.1q0.13 0.27 0.42 0.31 0.29 0.05 0.51-0.15 0.08-0.09 0.14-0.18l0.04-0.11 0-2.1q0.01-2.1 0-2.21-0.05-0.24-0.25-0.37-0.19-0.13-0.44-0.09z m2.35 0q-0.18 0.01-0.31 0.15-0.13 0.13-0.17 0.31-0.01 0.11 0 2.21l0 2.1 0.04 0.11q0.06 0.1 0.14 0.18 0.21 0.19 0.51 0.15 0.29-0.05 0.42-0.31l0.04-0.1 0.01-4.34-0.04-0.1q-0.09-0.2-0.25-0.3-0.17-0.11-0.38-0.06z m2.32 0q-0.1 0.01-0.17 0.05-0.08 0.03-0.15 0.13-0.08 0.09-0.11 0.17-0.03 0.08-0.03 0.37l0 4.1 0.04 0.09q0.04 0.07 0.13 0.15 0.09 0.08 0.16 0.13 0.08 0.04 0.25 0.04 0.17 0 0.24-0.04 0.08-0.04 0.16-0.13 0.09-0.09 0.13-0.15l0.04-0.09 0-3.91q0-0.39-0.03-0.52-0.01-0.09-0.06-0.15l-0.03-0.03q-0.1-0.13-0.25-0.18-0.15-0.06-0.31-0.03z m-8.79 6.41q-0.13 0.03-0.24 0.13-0.11 0.11-0.17 0.23-0.07 0.21 0.01 0.43 0.09 0.22 0.29 0.31l0.11 0.04 10.75 0 0.11-0.04q0.21-0.11 0.29-0.32 0.09-0.21 0.01-0.42-0.08-0.21-0.28-0.32l-0.1-0.04-5.36-0.01q-5.35 0-5.43 0.01z"/></symbol>
+<symbol id="i-list-checks" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 5h8"/><path d="M13 12h8"/><path d="M13 19h8"/><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/></symbol>
+<symbol id="i-lock" viewBox="0 0 14 14"><path fill="currentColor" d="M6.77 0.6q-0.73 0.03-1.39 0.38-0.66 0.35-1.12 0.92-0.47 0.57-0.65 1.29l0 0.01q-0.07 0.29-0.09 0.49-0.01 0.19-0.03 1.03l0 1.11-0.27 0q-0.41 0-0.64 0.04-0.23 0.04-0.45 0.15-0.32 0.17-0.56 0.45-0.24 0.28-0.35 0.65l-0.05 0.15 0 4.72 0.05 0.15q0.16 0.52 0.56 0.86 0.41 0.34 0.94 0.4 0.14 0.03 4.27 0.03 4.13 0 4.27-0.03 0.31-0.03 0.59-0.17 0.32-0.15 0.56-0.44 0.24-0.29 0.35-0.65l0.05-0.15 0-4.72-0.05-0.15q-0.11-0.37-0.35-0.65-0.24-0.28-0.56-0.45-0.22-0.11-0.45-0.15-0.23-0.04-0.64-0.04l-0.27 0 0-1.13q-0.01-0.81-0.03-1-0.01-0.19-0.09-0.47l0-0.03q-0.18-0.71-0.67-1.3-0.48-0.59-1.15-0.94-0.83-0.41-1.79-0.35z m0.7 1.2q0.76 0.15 1.27 0.74 0.36 0.41 0.5 0.93 0.06 0.19 0.06 0.41 0.01 0.22 0.01 0.97l0 0.97-4.65 0 0-1.06q0-0.83 0.01-1.01 0.01-0.18 0.1-0.41 0.22-0.64 0.75-1.07 0.53-0.43 1.2-0.51 0.14-0.01 0.36 0 0.23 0.01 0.38 0.04z m3.85 5.25q0.08 0.04 0.16 0.12 0.08 0.08 0.11 0.15 0.04 0.08 0.06 0.19 0.02 0.12 0.01 2.19l0 1.64q0 0.36-0.03 0.49-0.01 0.09-0.07 0.14l-0.01 0.03q-0.11 0.13-0.27 0.2l-0.1 0.04-8.37 0-0.1-0.04q-0.15-0.06-0.27-0.2l-0.01-0.03q-0.06-0.07-0.07-0.14-0.03-0.13-0.03-0.49l0-1.65q-0.01-2.09 0.01-2.2 0.01-0.18 0.13-0.31 0.12-0.13 0.29-0.17 0.07-0.01 4.26-0.01l4.2 0.01 0.1 0.04z"/></symbol>
+<symbol id="i-receipt" viewBox="0 0 14 14"><path fill="currentColor" d="M2.23 0.59q-0.29 0.07-0.42 0.33l-0.04 0.1 0 11.96 0.04 0.1q0.04 0.08 0.11 0.16 0.07 0.08 0.15 0.11 0.08 0.03 0.19 0.05 0.11 0.02 0.19 0 0.09-0.02 0.56-0.26l0.49-0.24 0.49 0.24q0.41 0.19 0.53 0.25 0.13 0.05 0.24 0.02 0.11-0.03 0.59-0.27l0.49-0.24 1.02 0.5 0.28 0 1.02-0.5 0.49 0.24q0.48 0.24 0.59 0.27 0.11 0.03 0.24-0.02 0.13-0.05 0.53-0.25l0.49-0.24 0.49 0.24q0.42 0.21 0.55 0.25 0.13 0.04 0.26 0 0.28-0.09 0.41-0.33l0.03-0.09 0.01-11.92-0.04-0.1q-0.06-0.15-0.2-0.27-0.14-0.11-0.35-0.11l-0.14 0-1.02 0.52-1.02-0.52-0.13 0q-0.14 0-0.21 0.03-0.07 0.03-0.52 0.25l-0.46 0.22-1.01-0.5-0.31 0-1.01 0.5-0.46-0.22q-0.45-0.23-0.52-0.25-0.07-0.03-0.21-0.03l-0.13 0-1.02 0.52-0.52-0.25q-0.4-0.21-0.52-0.25-0.11-0.03-0.24-0.01l0-0.01z m2.94 1.48l0.49 0.25 0.35 0 0.99-0.51 0.99 0.51 0.35 0 0.98-0.51 1.01 0.51 0.33 0 0.41-0.21 0 4.88q0 4.89-0.01 4.89-0.01 0-0.21-0.1l-0.19-0.11-0.33 0-0.99 0.51-1.01-0.51-0.33 0-0.99 0.51-0.99-0.51-0.33 0-1.01 0.51-0.99-0.51-0.33 0-0.19 0.11q-0.2 0.1-0.21 0.1-0.01 0-0.01-4.89l0-4.88 0.41 0.21 0.33 0 0.99-0.51 0.5 0.25z m1.74 1.15q-0.18 0.03-0.32 0.18-0.1 0.09-0.13 0.19-0.03 0.1-0.03 0.29l0 0.19-0.27 0q-0.55 0-0.81 0.09-0.43 0.12-0.75 0.44-0.31 0.31-0.44 0.75-0.18 0.64 0.11 1.26 0.15 0.32 0.44 0.56 0.29 0.24 0.65 0.35 0.11 0.03 0.2 0.04 0.09 0.01 0.41 0.01l0.45 0 0 1.18-1.9 0.01-0.1 0.04q-0.08 0.04-0.16 0.12-0.08 0.07-0.12 0.14-0.12 0.27 0 0.53 0.13 0.27 0.42 0.31 0.1 0.03 0.98 0.03l0.88 0 0 0.19q0 0.2 0.03 0.3 0.03 0.1 0.13 0.19 0.18 0.17 0.42 0.17 0.24 0 0.42-0.17 0.1-0.1 0.13-0.19 0.03-0.1 0.03-0.3l0-0.19 0.42-0.01q0.35 0 0.52-0.03 0.17-0.03 0.37-0.13 0.59-0.25 0.87-0.85 0.28-0.59 0.11-1.21-0.11-0.39-0.39-0.7-0.28-0.31-0.66-0.46-0.18-0.07-0.34-0.09-0.16-0.02-0.5-0.02l-0.39 0 0-1.18 1.9-0.01 0.1-0.04q0.08-0.04 0.16-0.11 0.08-0.07 0.11-0.14 0.04-0.07 0.05-0.18 0.04-0.2-0.05-0.37-0.09-0.17-0.28-0.27l-0.1-0.04-1.89-0.01 0-0.19q0-0.21-0.03-0.29-0.07-0.2-0.25-0.29-0.18-0.1-0.39-0.07z m-0.48 2.62l0 0.59-0.29 0q-0.33 0-0.46-0.03-0.13-0.03-0.24-0.15-0.17-0.15-0.17-0.38-0.01-0.23 0.15-0.42 0.1-0.13 0.28-0.17 0.09-0.03 0.41-0.03l0.33 0 0 0.59z m1.84 1.76q0.31 0.04 0.43 0.32 0.04 0.1 0.04 0.24 0 0.32-0.24 0.49-0.1 0.06-0.2 0.08-0.11 0.02-0.39 0.02l-0.33 0 0-1.18 0.29 0q0.28 0 0.39 0.03z"/></symbol>
+<symbol id="i-refresh-cw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+<symbol id="i-scale" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="m19 8 3 8a5 5 0 0 1-6 0zV7"/><path d="M3 7h1a17 17 0 0 0 8-2 17 17 0 0 0 8 2h1"/><path d="m5 8 3 8a5 5 0 0 1-6 0zV7"/><path d="M7 21h10"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-shopping-cart" viewBox="0 0 14 14"><path fill="currentColor" d="M1.06 0.63q-0.08 0.03-0.18 0.09-0.1 0.05-0.15 0.14-0.13 0.17-0.11 0.39 0.01 0.22 0.17 0.37 0.13 0.11 0.26 0.14 0.13 0.03 0.5 0.03l0.29 0.01q0.05 0 0.05 0.03l1.42 6.52q0.08 0.39 0.13 0.51l0.01 0.03q0.12 0.31 0.4 0.57 0.27 0.27 0.59 0.39l0.04 0.02q0.14 0.04 0.27 0.05 0.19 0.01 0.77 0.03l2.39 0q3.05 0 3.18-0.02 0.13-0.02 0.3-0.08 0.17-0.06 0.29-0.13 0.23-0.13 0.42-0.36 0.19-0.23 0.29-0.45l0-0.01q0.05-0.11 0.13-0.41l0.48-2.11q0.48-2.13 0.48-2.26 0-0.15-0.09-0.29-0.08-0.14-0.24-0.21l-0.1-0.06-9.59-0.01-0.27-1.24q-0.27-1.25-0.3-1.33-0.03-0.09-0.11-0.16-0.08-0.08-0.17-0.12l-0.1-0.06-0.69 0q-0.68 0-0.76 0.01z m11.07 4.13q0 0.03-0.18 0.84l-0.23 1.01q-0.39 1.78-0.43 1.86-0.1 0.17-0.29 0.27l-0.1 0.04-5.98 0-0.1-0.04q-0.21-0.1-0.29-0.28-0.04-0.09-0.43-1.92l-0.39-1.85q0 0 4.23 0l4.23 0-0.03 0.07z m-7.62 6.34q-0.27 0.01-0.5 0.18-0.34 0.23-0.46 0.6-0.12 0.37 0.01 0.74 0.13 0.37 0.46 0.61 0.26 0.18 0.63 0.18 0.25 0 0.44-0.08 0.19-0.08 0.38-0.27 0.19-0.19 0.27-0.38 0.08-0.19 0.08-0.44 0-0.25-0.08-0.44-0.08-0.19-0.26-0.37-0.15-0.15-0.29-0.22-0.31-0.15-0.67-0.11z m6.43 0q-0.39 0.03-0.7 0.33-0.17 0.18-0.25 0.37-0.08 0.19-0.08 0.44 0 0.25 0.08 0.45 0.08 0.19 0.27 0.38 0.19 0.18 0.38 0.26 0.19 0.08 0.44 0.08 0.37 0 0.63-0.18 0.34-0.24 0.46-0.61 0.13-0.37 0.01-0.74-0.12-0.37-0.46-0.6-0.34-0.23-0.78-0.18z"/></symbol>
+<symbol id="i-smartphone" viewBox="0 0 14 14"><path fill="currentColor" d="M3.91 0.6q-0.29 0.03-0.59 0.17-0.29 0.14-0.51 0.37-0.31 0.33-0.43 0.81l-0.04 0.17 0 9.8 0.04 0.17q0.07 0.25 0.18 0.44 0.11 0.19 0.29 0.37 0.18 0.18 0.37 0.29 0.19 0.11 0.44 0.18l0.17 0.04 6.33 0 0.17-0.04q0.25-0.07 0.44-0.18 0.19-0.11 0.37-0.29 0.18-0.18 0.29-0.37 0.11-0.19 0.18-0.44l0.04-0.17 0-9.83-0.04-0.17q-0.13-0.46-0.43-0.78-0.45-0.48-1.13-0.55-0.17-0.01-3.07-0.01-2.9 0-3.08 0.03z m6.24 1.2q0.19 0.1 0.29 0.29l0.04 0.1 0 9.6-0.03 0.09q-0.13 0.26-0.38 0.33-0.08 0.03-3.08 0.03-3 0-3.08-0.03-0.25-0.07-0.38-0.33l-0.03-0.09 0-9.6 0.04-0.1q0.11-0.25 0.38-0.32 0.09-0.03 3.11-0.03l3.01 0.01 0.1 0.04z m-3.31 8.13q-0.25 0.09-0.38 0.31-0.04 0.09-0.04 0.24 0 0.15 0.03 0.24 0.04 0.08 0.13 0.18 0.15 0.15 0.4 0.17 0.25 0.01 0.42-0.16 0.17-0.17 0.17-0.41 0-0.24-0.17-0.4-0.17-0.16-0.39-0.17-0.14 0-0.18 0.01z"/></symbol>
+<symbol id="i-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></symbol>
+<symbol id="i-user" viewBox="0 0 14 14"><path fill="currentColor" d="M6.59 1.2q-0.81 0.11-1.43 0.62-0.62 0.5-0.9 1.24-0.18 0.49-0.18 1.02 0 0.28 0.04 0.51 0.04 0.22 0.14 0.49 0.15 0.46 0.47 0.85 0.32 0.38 0.72 0.64 0.37 0.23 0.73 0.32 0.37 0.1 0.81 0.1 0.23 0 0.36-0.01 0.14-0.01 0.35-0.06 0.6-0.15 1.1-0.56 0.51-0.41 0.8-0.98 0.19-0.39 0.27-0.88 0.03-0.14 0.03-0.41 0-0.27-0.03-0.41-0.1-0.66-0.46-1.2-0.36-0.55-0.94-0.9-0.43-0.27-0.98-0.37-0.15-0.03-0.45-0.03-0.3-0.01-0.45 0.02z m0.6 1.15q0.41 0.03 0.78 0.29 0.38 0.26 0.58 0.66 0.21 0.4 0.18 0.88-0.02 0.48-0.29 0.86-0.15 0.24-0.38 0.41-0.22 0.17-0.46 0.27-0.19 0.06-0.29 0.08-0.09 0.02-0.33 0.02-0.24 0-0.33-0.02-0.09-0.02-0.28-0.08-0.39-0.14-0.68-0.47-0.29-0.33-0.4-0.73-0.11-0.46 0.01-0.91 0.13-0.45 0.45-0.77 0.33-0.32 0.79-0.45 0.09-0.03 0.25-0.05 0.16-0.02 0.22-0.01l0.17 0.01z m-2.35 5.85q-0.96 0.14-1.65 0.83-0.55 0.55-0.76 1.32-0.07 0.24-0.09 0.44-0.01 0.2-0.01 0.82l0 0.77 0.04 0.11q0.06 0.1 0.14 0.18 0.21 0.19 0.51 0.15 0.29-0.05 0.42-0.31l0.04-0.1 0.01-0.8q0.01-0.62 0.03-0.77 0.01-0.15 0.07-0.35 0.14-0.38 0.47-0.68 0.33-0.3 0.73-0.41 0.15-0.04 0.54-0.05 0.39-0.01 1.66-0.01 1.27 0 1.66 0.01 0.39 0.01 0.54 0.05 0.42 0.11 0.76 0.43 0.34 0.31 0.46 0.72 0.06 0.17 0.06 0.32 0.01 0.15 0.02 0.74l0.01 0.8 0.04 0.1q0.13 0.27 0.42 0.31 0.29 0.05 0.51-0.15 0.08-0.09 0.14-0.18l0.04-0.11 0-0.77q0-0.62-0.01-0.82-0.01-0.2-0.09-0.44-0.08-0.32-0.24-0.62-0.27-0.52-0.74-0.9-0.47-0.39-1.03-0.54l-0.04-0.01q-0.17-0.06-0.29-0.07-0.15-0.01-0.56-0.01l-1.61-0.01q-2.06 0-2.21 0.03z"/></symbol>
+<symbol id="i-users" viewBox="0 0 14 14"><path fill="currentColor" d="M4.84 1.2q-0.81 0.11-1.43 0.62-0.62 0.5-0.9 1.24-0.18 0.49-0.18 1.02 0 0.28 0.04 0.51 0.04 0.22 0.14 0.49 0.15 0.46 0.47 0.85 0.32 0.38 0.72 0.64 0.37 0.23 0.73 0.32 0.37 0.1 0.81 0.1 0.23 0 0.36-0.01 0.14-0.01 0.35-0.06 0.6-0.15 1.1-0.56 0.51-0.41 0.8-0.98 0.19-0.39 0.27-0.88 0.03-0.14 0.03-0.41 0-0.27-0.03-0.41-0.1-0.66-0.46-1.2-0.36-0.55-0.94-0.9-0.43-0.27-0.98-0.37-0.15-0.03-0.45-0.03-0.3-0.01-0.45 0.02z m4.34 0.06q-0.14 0.04-0.25 0.14-0.11 0.1-0.15 0.27-0.04 0.17 0 0.32 0.04 0.15 0.15 0.25 0.11 0.1 0.34 0.18 0.25 0.08 0.4 0.17 0.15 0.09 0.31 0.26 0.34 0.33 0.45 0.77 0.12 0.43 0.01 0.87-0.1 0.43-0.42 0.77-0.31 0.33-0.78 0.49-0.19 0.07-0.29 0.14-0.09 0.07-0.16 0.21-0.05 0.1-0.05 0.24 0 0.14 0.05 0.24 0.09 0.19 0.28 0.29 0.13 0.06 0.25 0.05 0.13-0.01 0.33-0.08 0.35-0.11 0.61-0.27 0.26-0.16 0.51-0.43 0.78-0.78 0.85-1.85 0.1-1.19-0.7-2.13-0.49-0.59-1.27-0.85-0.33-0.11-0.49-0.05z m-3.74 1.09q0.41 0.03 0.78 0.29 0.38 0.26 0.58 0.66 0.21 0.4 0.18 0.88-0.02 0.48-0.29 0.86-0.15 0.24-0.38 0.41-0.22 0.17-0.46 0.27-0.19 0.06-0.29 0.08-0.09 0.02-0.33 0.02-0.24 0-0.33-0.02-0.09-0.02-0.28-0.08-0.39-0.14-0.68-0.47-0.29-0.33-0.4-0.73-0.11-0.46 0.01-0.91 0.13-0.45 0.45-0.77 0.33-0.32 0.79-0.45 0.09-0.03 0.25-0.05 0.16-0.02 0.22-0.01l0.17 0.01z m-2.35 5.85q-0.96 0.14-1.65 0.83-0.55 0.55-0.76 1.32-0.07 0.24-0.09 0.44-0.01 0.2-0.01 0.82l0 0.77 0.04 0.11q0.06 0.1 0.14 0.18 0.21 0.19 0.51 0.15 0.29-0.05 0.42-0.31l0.04-0.1 0.01-0.8q0.01-0.62 0.03-0.77 0.01-0.15 0.07-0.35 0.14-0.38 0.47-0.68 0.33-0.3 0.73-0.41 0.15-0.04 0.54-0.05 0.39-0.01 1.66-0.01 1.27 0 1.66 0.01 0.39 0.01 0.54 0.05 0.42 0.11 0.76 0.43 0.34 0.31 0.46 0.72 0.06 0.17 0.06 0.32 0.01 0.15 0.02 0.74l0.01 0.8 0.04 0.1q0.13 0.27 0.42 0.31 0.29 0.05 0.51-0.15 0.08-0.09 0.14-0.18l0.04-0.11 0-0.77q0-0.62-0.01-0.82-0.01-0.2-0.09-0.44-0.08-0.32-0.24-0.62-0.27-0.52-0.74-0.9-0.47-0.39-1.03-0.54l-0.04-0.01q-0.17-0.06-0.29-0.07-0.15-0.01-0.56-0.01l-1.61-0.01q-2.06 0-2.21 0.03z m7.85 0.06q-0.24 0.05-0.37 0.27-0.12 0.22-0.05 0.45 0.06 0.19 0.21 0.31 0.07 0.04 0.28 0.13 0.25 0.08 0.4 0.17 0.15 0.09 0.32 0.27 0.33 0.35 0.45 0.78 0.03 0.11 0.03 0.25 0.01 0.13 0.02 0.71l0.01 0.8 0.04 0.1q0.13 0.27 0.42 0.31 0.29 0.05 0.51-0.15 0.08-0.09 0.14-0.18l0.04-0.11 0.01-0.65q0-0.64-0.03-0.96-0.03-0.31-0.13-0.59-0.14-0.42-0.43-0.81-0.29-0.39-0.65-0.66-0.31-0.23-0.7-0.36-0.38-0.13-0.55-0.09z"/></symbol>
+<symbol id="i-wallet" viewBox="0 0 14 14"><path fill="currentColor" d="M2.6 1.2q-0.51 0.09-0.88 0.44-0.37 0.35-0.51 0.86-0.03 0.09-0.03 0.71l-0.01 3.78 0.01 3.78q0 0.63 0.03 0.71 0.27 0.98 1.26 1.29l0.13 0.04 8.29 0q0.77 0 0.99-0.03 0.16-0.01 0.25-0.07l0.06-0.03q0.15-0.07 0.29-0.21 0.14-0.14 0.21-0.29l0.01-0.01q0.07-0.13 0.09-0.21 0.03-0.1 0.03-0.33l0-1.86 0.13-0.1q0.32-0.24 0.43-0.63 0.01-0.07 0.03-0.23l0-0.66q0-0.57-0.01-0.69-0.01-0.11-0.03-0.21-0.04-0.14-0.09-0.23-0.05-0.09-0.17-0.23-0.13-0.14-0.21-0.18l-0.07-0.05-0.01-2.02q0-0.17-0.03-0.25-0.07-0.18-0.21-0.36-0.14-0.17-0.29-0.27-0.22-0.13-0.49-0.15l-0.11-0.01-0.01-0.69q0-0.49-0.01-0.61-0.01-0.12-0.03-0.2-0.06-0.15-0.12-0.26-0.06-0.11-0.18-0.23-0.25-0.25-0.55-0.31-0.13-0.03-4.07-0.03-3.95 0-4.09 0.03z m7.9 1.71l0 0.59-7.69 0-0.1-0.04q-0.15-0.06-0.27-0.2-0.11-0.14-0.11-0.35 0-0.13 0.05-0.24 0.06-0.13 0.17-0.22 0.12-0.09 0.26-0.12 0.09 0 3.88-0.01l3.79 0 0 0.59z m-8.02 1.7q0.11 0.03 0.25 0.05 0.14 0.02 4.55 0.02l4.4 0 0 1.75-0.74 0q-0.59 0-0.72 0.01-0.13 0.01-0.33 0.1-0.24 0.08-0.46 0.26-0.22 0.17-0.36 0.38-0.33 0.51-0.3 1.09 0.03 0.58 0.4 1.03 0.37 0.45 0.97 0.59 0.13 0.03 0.83 0.03l0.71 0.01 0 1.75-4.38 0q-4.38 0-4.48-0.03-0.29-0.06-0.43-0.33l-0.04-0.1 0-6.12q0-0.53 0.01-0.52l0.13 0.03z m9.77 3.55l0 0.59-1.9-0.01-0.1-0.04q-0.1-0.04-0.17-0.13-0.08-0.09-0.12-0.19-0.04-0.1-0.03-0.23 0.01-0.13 0.05-0.22 0.07-0.13 0.18-0.22 0.11-0.09 0.25-0.11 0.1-0.03 0.97-0.03l0.88 0 0 0.59z"/></symbol>
+<symbol id="i-wifi-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/><path d="M5 12.859a10 10 0 0 1 5.17-2.69"/><path d="M19 12.859a10 10 0 0 0-2.007-1.523"/><path d="M2 8.82a15 15 0 0 1 4.177-2.643"/><path d="M22 8.82a15 15 0 0 0-11.288-3.764"/><path d="m2 2 20 20"/></symbol>
+</svg>
+
+<header class="bar">
+  <a class="brand" href="#top"><img src="icon.svg" alt="" width="32" height="32">My Home</a>
+  <nav class="tabs" aria-label="Sections">
+    <a href="#inside"><span lang="en">What's in it</span><span lang="nl-BE">Wat zit erin</span></a>
+    <a href="#install"><span lang="en">Install</span><span lang="nl-BE">Installeren</span></a>
+    <a href="#https"><span lang="en">Phones</span><span lang="nl-BE">Gsm</span></a>
+    <a href="#care"><span lang="en">Updates &amp; backups</span><span lang="nl-BE">Updates &amp; back-ups</span></a>
+  </nav>
+  <nav class="lang" aria-label="Language · Taal">
+    <a href="?lang=en" hreflang="en" data-lang="en" title="English">EN</a>
+    <a href="?lang=nl" hreflang="nl-BE" data-lang="nl" title="Nederlands">NL</a>
+  </nav>
+</header>
+
+<main id="top">
+  <!-- ---------- Hero ---------- -->
+  <section class="hero">
+    <div class="hero-text">
+      <span class="pill-people">
+        <span class="avatars"><span class="avatar teal">A</span><span class="avatar orange">S</span></span>
+        <span lang="en">For one or more people</span><span lang="nl-BE">Voor één of meer personen</span>
+      </span>
+      <h1>
+        <span lang="en">Your household budget, kept at home.</span>
+        <span lang="nl-BE">Je huishoudbudget, gewoon bij jou thuis.</span>
+      </h1>
+      <p class="lead" lang="en">My Home shows what comes in, what goes out and what's left — for one person or the whole household. It runs on your own NAS or PC, keeps your figures to yourself, and works on your phone, even offline.</p>
+      <p class="lead" lang="nl-BE">My Home toont wat er binnenkomt, wat eruit gaat en wat er overblijft — voor één persoon of het hele huishouden. Het draait op je eigen NAS of pc, je cijfers blijven bij jou, en het werkt op je gsm, zelfs offline.</p>
+      <div class="actions">
+        <a class="btn blue" href="#install"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg><span lang="en">How to install</span><span lang="nl-BE">Zo installeer je het</span></a>
+        <a class="btn white" href="#inside"><span lang="en">Take a look</span><span lang="nl-BE">Kijk even rond</span><svg class="ic" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+      </div>
+      <p class="small-print"><span lang="en">No cloud · no ads · no tracking</span><span lang="nl-BE">Geen cloud · geen reclame · geen tracking</span></p>
+    </div>
+    <figure class="duo hero-duo">
+      <div class="window">
+        <div class="window-bar"><span class="addr"><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg>myhome.example.org</span></div>
+        <img src="img/budget-desktop.webp" width="1600" height="1000" alt="Budget on a computer: what the demo household Alex &amp; Sam has left this month, after the bills, the reserve and the savings goals" data-alt-nl="Budget op een computer: wat het demohuishouden Alex &amp; Sam deze maand overhoudt, na de vaste kosten, de reserve en de spaardoelen">
+      </div>
+      <div class="phone"><img src="img/home-phone.webp" width="640" height="1385" alt="Home on a phone: Alex's month at a glance" data-alt-nl="Home op een gsm: de maand van Alex in één oogopslag"></div>
+    </figure>
+  </section>
+
+  <!-- ---------- Why ---------- -->
+  <section class="sec why">
+    <div class="grid4">
+      <div class="card">
+        <span class="chip blue"><svg class="ic" aria-hidden="true"><use href="#i-wallet"/></svg></span>
+        <h3><span lang="en">What's left, at a glance</span><span lang="nl-BE">Wat overblijft, in één oogopslag</span></h3>
+        <p lang="en">Income less the bills, a reserve for the yearly ones and your savings goals: what's left, together and for each of you.</p>
+        <p lang="nl-BE">Inkomen min de vaste kosten, een reserve voor de jaarlijkse facturen en je spaardoelen: wat er overblijft, samen en voor ieder van jullie.</p>
+      </div>
+      <div class="card">
+        <span class="chip violet"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg></span>
+        <h3><span lang="en">An account each</span><span lang="nl-BE">Ieder een eigen account</span></h3>
+        <p lang="en">Everyone signs in on their own phone or computer. Shared accounts everyone sees; a private balance only its owner.</p>
+        <p lang="nl-BE">Iedereen meldt zich aan op de eigen gsm of computer. Gedeelde rekeningen ziet iedereen, het saldo van een eigen rekening enkel de eigenaar.</p>
+      </div>
+      <div class="card">
+        <span class="chip green"><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg></span>
+        <h3><span lang="en">Your figures stay home</span><span lang="nl-BE">Je cijfers blijven thuis</span></h3>
+        <p lang="en">Everything is kept in a database on your own server. No cloud account, no ads, no tracking.</p>
+        <p lang="nl-BE">Alles staat in een databank op je eigen server. Geen cloudaccount, geen reclame, geen tracking.</p>
+      </div>
+      <div class="card">
+        <span class="chip amber"><svg class="ic" aria-hidden="true"><use href="#i-wifi-off"/></svg></span>
+        <h3><span lang="en">Works offline</span><span lang="nl-BE">Werkt offline</span></h3>
+        <p lang="en">On a phone, My Home is an app on the home screen. It works without a connection and syncs as soon as it reaches your server again.</p>
+        <p lang="nl-BE">Op je gsm is My Home een app op je startscherm. Ze werkt ook zonder verbinding en synchroniseert zodra je server weer bereikbaar is.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- What's in it ---------- -->
+  <section class="sec" id="inside">
+    <header class="sec-head">
+      <span class="crumb"><svg class="ic" aria-hidden="true"><use href="#i-house"/></svg><span lang="en">What's in it</span><span lang="nl-BE">Wat zit erin</span></span>
+      <h2><span lang="en">Everything for the household's money</span><span lang="nl-BE">Alles voor het geld van je huishouden</span></h2>
+      <p lang="en">On a computer and on a phone. The pictures show a demo household, Alex &amp; Sam, with made-up amounts.</p>
+      <p lang="nl-BE">Op een computer en op je gsm. De afbeeldingen tonen een demohuishouden, Alex &amp; Sam, met verzonnen bedragen.</p>
+    </header>
+
+    <div class="tour">
+      <input class="sr" type="radio" name="tour" id="tour-home" checked>
+      <input class="sr" type="radio" name="tour" id="tour-budget">
+      <input class="sr" type="radio" name="tour" id="tour-expenses">
+      <input class="sr" type="radio" name="tour" id="tour-accounts">
+      <input class="sr" type="radio" name="tour" id="tour-settings">
+      <div class="tour-tabs">
+        <label for="tour-home"><svg class="ic" aria-hidden="true"><use href="#i-house"/></svg>Home</label>
+        <label for="tour-budget"><svg class="ic" aria-hidden="true"><use href="#i-wallet"/></svg>Budget</label>
+        <label for="tour-expenses"><svg class="ic" aria-hidden="true"><use href="#i-receipt"/></svg><span lang="en">Expenses</span><span lang="nl-BE">Uitgaven</span></label>
+        <label for="tour-accounts"><svg class="ic" aria-hidden="true"><use href="#i-landmark"/></svg><span lang="en">Accounts</span><span lang="nl-BE">Rekeningen</span></label>
+        <label for="tour-settings"><svg class="ic" aria-hidden="true"><use href="#i-settings"/></svg><span lang="en">Settings</span><span lang="nl-BE">Instellingen</span></label>
+      </div>
+
+      <div class="panels">
+        <article class="panel p-home">
+          <div class="panel-text">
+            <h3><span lang="en">What matters today</span><span lang="nl-BE">Wat vandaag telt</span></h3>
+            <p lang="en">Home greets whoever is signed in with their own month: their income, their part of the bills and what's left for them — and the yearly bills that are coming up.</p>
+            <p lang="nl-BE">Home begroet wie aangemeld is met de eigen maand: het inkomen, het eigen deel van de kosten en wat er overblijft — en de jaarlijkse facturen die eraan komen.</p>
+          </div>
+          <figure class="duo">
+            <div class="window"><img src="img/home-desktop.webp" width="1600" height="1000" loading="lazy" alt="Home on a computer, signed in as Alex" data-alt-nl="Home op een computer, aangemeld als Alex"></div>
+            <div class="phone"><img src="img/home-phone.webp" width="640" height="1385" loading="lazy" alt="Home on a phone, signed in as Alex" data-alt-nl="Home op een gsm, aangemeld als Alex"></div>
+          </figure>
+        </article>
+
+        <article class="panel p-budget">
+          <div class="panel-text">
+            <h3><span lang="en">The whole household at a glance</span><span lang="nl-BE">Het hele huishouden in één oogopslag</span></h3>
+            <p lang="en">Income minus the monthly bills, the reserve for the yearly ones and the savings goals: what's left together, and what each of you keeps. Export it as a page to keep or to share.</p>
+            <p lang="nl-BE">Inkomen min de maandelijkse kosten, de reserve voor de jaarlijkse en de spaardoelen: wat er samen overblijft, en wat ieder van jullie houdt. Exporteer het als pagina om bij te houden of te delen.</p>
+          </div>
+          <figure class="duo">
+            <div class="window"><img src="img/budget-desktop.webp" width="1600" height="1000" loading="lazy" alt="Budget on a computer: Alex &amp; Sam's month together" data-alt-nl="Budget op een computer: de maand van Alex &amp; Sam samen"></div>
+            <div class="phone"><img src="img/budget-phone.webp" width="640" height="1385" loading="lazy" alt="Budget on a phone: income, bills, reserve, goals and what's left" data-alt-nl="Budget op een gsm: inkomen, vaste kosten, reserve, doelen en wat overblijft"></div>
+          </figure>
+        </article>
+
+        <article class="panel p-expenses">
+          <div class="panel-text">
+            <h3><span lang="en">Every bill, by how often it's due</span><span lang="nl-BE">Elke factuur, volgens hoe vaak ze terugkomt</span></h3>
+            <p lang="en">Your own bills first, then the household's: monthly, quarterly, yearly. A new one takes a few taps; a shared bill is split by your household's own key.</p>
+            <p lang="nl-BE">Eerst je eigen vaste kosten, dan die van het huishouden: maandelijks, per kwartaal, jaarlijks. Een nieuwe voeg je toe in een paar tikken; gedeelde kosten worden verdeeld volgens jullie eigen verdeelsleutel.</p>
+          </div>
+          <figure class="duo">
+            <div class="window"><img src="img/expenses-desktop.webp" width="1600" height="1000" loading="lazy" alt="Expenses on a computer: Alex's own bills" data-alt-nl="Uitgaven op een computer: de eigen vaste kosten van Alex"></div>
+            <div class="phone"><img src="img/expenses-phone.webp" width="640" height="1385" loading="lazy" alt="Expenses on a phone" data-alt-nl="Uitgaven op een gsm"></div>
+          </figure>
+        </article>
+
+        <article class="panel p-accounts">
+          <div class="panel-text">
+            <h3><span lang="en">Accounts and the money flow</span><span lang="nl-BE">Rekeningen en de geldstroom</span></h3>
+            <p lang="en">Every account with its IBAN, ready to copy. The standing orders say who moves how much to which account each month, so there's enough on the joint account for the bills.</p>
+            <p lang="nl-BE">Elke rekening met haar IBAN, klaar om te kopiëren. De doorlopende opdrachten zeggen wie elke maand hoeveel naar welke rekening overschrijft, zodat er op de gemeenschappelijke rekening genoeg staat voor de vaste kosten.</p>
+          </div>
+          <figure class="duo">
+            <div class="window"><img src="img/accounts-desktop.webp" width="1600" height="1000" loading="lazy" alt="The household's accounts on a computer, with made-up IBANs" data-alt-nl="De rekeningen van het huishouden op een computer, met verzonnen IBAN's"></div>
+            <div class="phone"><img src="img/accounts-phone.webp" width="640" height="1385" loading="lazy" alt="The household's accounts on a phone" data-alt-nl="De rekeningen van het huishouden op een gsm"></div>
+          </figure>
+        </article>
+
+        <article class="panel p-settings">
+          <div class="panel-text">
+            <h3><span lang="en">Your own corner</span><span lang="nl-BE">Je eigen hoekje</span></h3>
+            <p lang="en">Everyone keeps their own name, colour and net income up to date, with their own accounts, extra income — a 13th month, holiday pay — and savings goals.</p>
+            <p lang="nl-BE">Iedereen houdt zelf naam, kleur en netto-inkomen bij, samen met de eigen rekeningen, extra inkomen — een dertiende maand, vakantiegeld — en spaardoelen.</p>
+          </div>
+          <figure class="duo">
+            <div class="window"><img src="img/settings-desktop.webp" width="1600" height="1000" loading="lazy" alt="Settings on a computer: Alex's name, colour and income" data-alt-nl="Instellingen op een computer: naam, kleur en inkomen van Alex"></div>
+            <div class="phone"><img src="img/settings-phone.webp" width="640" height="1385" loading="lazy" alt="Settings on a phone" data-alt-nl="Instellingen op een gsm"></div>
+          </figure>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- Extras ---------- -->
+  <section class="sec" id="extras">
+    <header class="sec-head">
+      <span class="crumb"><svg class="ic" aria-hidden="true"><use href="#i-sparkles"/></svg><span lang="en">Extras</span><span lang="nl-BE">Extra's</span></span>
+      <h2><span lang="en">Four extras, when you want them</span><span lang="nl-BE">Vier extra's, als je ze wilt</span></h2>
+      <p lang="en">A new installation starts with the budget only. An admin switches each extra on in <b>Admin → Features</b>, for the whole household. Switched off again, it's hidden — nothing is deleted.</p>
+      <p lang="nl-BE">Een nieuwe installatie start met enkel het budget. Een beheerder zet elke extra aan bij <b>Admin → Features</b>, voor het hele huishouden. Zet je ze weer uit, dan verdwijnen ze uit beeld — er gaat niets verloren.</p>
+    </header>
+    <div class="extras">
+      <div class="card list">
+        <div class="li">
+          <span class="chip violet"><svg class="ic" aria-hidden="true"><use href="#i-list-checks"/></svg></span>
+          <div><div class="li-title">To-dos</div>
+            <div class="li-sub" lang="en">The household's to-dos in a week and month planner, with reminders on your phone.</div>
+            <div class="li-sub" lang="nl-BE">De taken van het huishouden in een week- en maandplanner, met herinneringen op je gsm.</div></div>
+          <span class="off"><span lang="en">Off</span><span lang="nl-BE">Uit</span></span>
+        </div>
+        <div class="li">
+          <span class="chip green"><svg class="ic" aria-hidden="true"><use href="#i-shopping-cart"/></svg></span>
+          <div><div class="li-title"><span lang="en">Shopping list</span><span lang="nl-BE">Boodschappenlijst</span></div>
+            <div class="li-sub" lang="en">One list for everyone, ticked off in the shop — offline too.</div>
+            <div class="li-sub" lang="nl-BE">Eén lijst voor iedereen, afvinken in de winkel — ook offline.</div></div>
+          <span class="off"><span lang="en">Off</span><span lang="nl-BE">Uit</span></span>
+        </div>
+        <div class="li">
+          <span class="chip blue"><svg class="ic" aria-hidden="true"><use href="#i-arrow-left-right"/></svg></span>
+          <div><div class="li-title">Splitwise</div>
+            <div class="li-sub" lang="en">Shared costs in pots, as in Splitwise: who paid what, and who owes whom.</div>
+            <div class="li-sub" lang="nl-BE">Gedeelde kosten in potjes, zoals in Splitwise: wie wat betaalde, en wie wie nog iets schuldig is.</div></div>
+          <span class="off"><span lang="en">Off</span><span lang="nl-BE">Uit</span></span>
+        </div>
+        <div class="li">
+          <span class="chip amber"><svg class="ic" aria-hidden="true"><use href="#i-scale"/></svg></span>
+          <div><div class="li-title">What if</div>
+            <div class="li-sub" lang="en">Try a loan, a new bill or another split before it's real.</div>
+            <div class="li-sub" lang="nl-BE">Probeer een lening, een nieuwe factuur of een andere verdeling uit voor het echt is.</div></div>
+          <span class="off"><span lang="en">Off</span><span lang="nl-BE">Uit</span></span>
+        </div>
+      </div>
+      <figure class="duo features-shot">
+        <div class="window"><img src="img/features-desktop.webp" width="1600" height="1000" loading="lazy" onerror="this.closest('figure').remove()" alt="Admin → Features on a computer: a switch for each extra" data-alt-nl="Admin → Features op een computer: een schakelaar per extra"></div>
+        <div class="phone"><img src="img/features-phone.webp" width="640" height="1385" loading="lazy" onerror="this.closest('.phone').remove()" alt="Admin → Features on a phone" data-alt-nl="Admin → Features op een gsm"></div>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ---------- What you need ---------- -->
+  <section class="sec" id="need">
+    <header class="sec-head">
+      <span class="crumb"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span lang="en">Before you start</span><span lang="nl-BE">Voor je begint</span></span>
+      <h2><span lang="en">What you need</span><span lang="nl-BE">Wat je nodig hebt</span></h2>
+    </header>
+    <div class="grid3">
+      <div class="card">
+        <span class="chip blue"><svg class="ic" aria-hidden="true"><use href="#i-database"/></svg></span>
+        <h3><span lang="en">A server that's always on</span><span lang="nl-BE">Een server die altijd aanstaat</span></h3>
+        <p lang="en">A NAS — Synology, QNAP, Unraid … — or a PC or mini-PC, with Docker and Docker Compose, on an Intel or AMD processor (x86-64; not ARM).</p>
+        <p lang="nl-BE">Een NAS — Synology, QNAP, Unraid … — of een pc of mini-pc, met Docker en Docker Compose, op een Intel- of AMD-processor (x86-64; geen ARM).</p>
+      </div>
+      <div class="card">
+        <span class="chip green"><svg class="ic" aria-hidden="true"><use href="#i-globe"/></svg></span>
+        <h3><span lang="en">An https address for phones</span><span lang="nl-BE">Een https-adres voor gsm's</span></h3>
+        <p lang="en">Phones only install the app over https. A reverse proxy such as Nginx Proxy Manager or Caddy gives it one. <a href="#https">How</a></p>
+        <p lang="nl-BE">Gsm's installeren de app enkel via https. Een reverse proxy zoals Nginx Proxy Manager of Caddy geeft je dat. <a href="#https">Hoe</a></p>
+      </div>
+      <div class="card">
+        <span class="chip violet"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg></span>
+        <h3><span lang="en">An account per person</span><span lang="nl-BE">Een account per persoon</span></h3>
+        <p lang="en">The first account is the admin; it adds everyone else. The app itself is in English.</p>
+        <p lang="nl-BE">Het eerste account is de beheerder; die voegt alle anderen toe. De app zelf is in het Engels.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- Install ---------- -->
+  <section class="sec" id="install">
+    <header class="sec-head">
+      <span class="crumb"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg><span lang="en">Install</span><span lang="nl-BE">Installeren</span></span>
+      <h2><span lang="en">Install in six steps</span><span lang="nl-BE">Installeren in zes stappen</span></h2>
+      <p lang="en">On your NAS or PC, in a terminal. A NAS's Docker app (Synology's Container Manager, for one) can do steps 1 to 3 as a project too.</p>
+      <p lang="nl-BE">Op je NAS of pc, in een terminal. De Docker-app van een NAS (zoals Container Manager van Synology) kan stap 1 tot 3 ook als project.</p>
+    </header>
+
+    <ol class="steps">
+      <li class="card step">
+        <h3><span class="num">1</span><span lang="en">Get <code>compose.yaml</code> and <code>.env</code></span><span lang="nl-BE">Haal <code>compose.yaml</code> en <code>.env</code> binnen</span></h3>
+        <p lang="en">Make a folder for My Home and download the two files from <a href="https://github.com/CodingStukka/my-home">CodingStukka/my-home</a>. <code>.env.example</code> becomes <code>.env</code>.</p>
+        <p lang="nl-BE">Maak een map voor My Home en download de twee bestanden uit <a href="https://github.com/CodingStukka/my-home">CodingStukka/my-home</a>. Van <code>.env.example</code> maak je <code>.env</code>.</p>
+        <div class="code"><pre><code>mkdir my-home &amp;&amp; cd my-home
+curl -fsSLO https://raw.githubusercontent.com/CodingStukka/my-home/main/compose.yaml
+curl -fsSL -o .env https://raw.githubusercontent.com/CodingStukka/my-home/main/.env.example</code></pre></div>
+        <p class="aside" lang="en"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>The app comes as a ready-made image, <code>ghcr.io/codingstukka/my-home</code>: Docker pulls it by itself in step 3.</span></p>
+        <p class="aside" lang="nl-BE"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>De app komt als kant-en-klare image, <code>ghcr.io/codingstukka/my-home</code>: Docker haalt die zelf binnen in stap 3.</span></p>
+      </li>
+
+      <li class="card step">
+        <h3><span class="num">2</span><span lang="en">Fill in <code>.env</code></span><span lang="nl-BE">Vul <code>.env</code> in</span></h3>
+        <p lang="en">Two lines are required: a password for the database and the app's secret. Make each one with this command, and paste them into <code>.env</code>:</p>
+        <p lang="nl-BE">Twee regels zijn verplicht: een wachtwoord voor de databank en het geheim van de app. Maak ze allebei met dit commando en plak ze in <code>.env</code>:</p>
+        <div class="code"><pre><code>openssl rand -hex 32</code></pre></div>
+        <div class="code"><pre><code>POSTGRES_PASSWORD=<i lang="en">the first one</i><i lang="nl-BE">de eerste</i>
+APP_SECRET=<i lang="en">the second one</i><i lang="nl-BE">de tweede</i></code></pre></div>
+        <p lang="en">The others can stay as they are:</p>
+        <p lang="nl-BE">De andere mogen blijven zoals ze zijn:</p>
+        <dl class="vars">
+          <div><dt><code>MH_PORT</code></dt><dd lang="en">The port on your server. Default <code>9090</code>.</dd><dd lang="nl-BE">De poort op je server. Standaard <code>9090</code>.</dd></div>
+          <div><dt><code>TZ</code></dt><dd lang="en">Your time zone. Default <code>Europe/Brussels</code>.</dd><dd lang="nl-BE">Je tijdzone. Standaard <code>Europe/Brussels</code>.</dd></div>
+          <div><dt><code>MH_SECURE_URL</code></dt><dd lang="en">Your https address, e.g. <code>https://myhome.example.org/</code>. The app's install page then sends phones there.</dd><dd lang="nl-BE">Je https-adres, bv. <code>https://myhome.example.org/</code>. De installatiepagina van de app stuurt gsm's daar dan naartoe.</dd></div>
+          <div><dt><code>TRUSTED_PROXIES</code></dt><dd lang="en">Your reverse proxy's address: see <a href="#https">Phones and https</a>.</dd><dd lang="nl-BE">Het adres van je reverse proxy: zie <a href="#https">Gsm's en https</a>.</dd></div>
+        </dl>
+        <p class="note" lang="en"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>The database password counts from the first start: don't change it later. Keep <code>.env</code> to yourself — and in your backups.</span></p>
+        <p class="note" lang="nl-BE"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>Het databankwachtwoord geldt vanaf de eerste start: verander het daarna niet meer. Hou <code>.env</code> voor jezelf — en bij je back-ups.</span></p>
+      </li>
+
+      <li class="card step">
+        <h3><span class="num">3</span><span lang="en">Start it</span><span lang="nl-BE">Start het op</span></h3>
+        <div class="code"><pre><code>docker compose up -d</code></pre></div>
+        <p lang="en">The first start downloads the image and creates the database: give it a minute.</p>
+        <p lang="nl-BE">De eerste start haalt de image binnen en maakt de databank aan: geef het een minuutje.</p>
+      </li>
+
+      <li class="card step">
+        <h3><span class="num">4</span><span lang="en">Open it</span><span lang="nl-BE">Open het</span></h3>
+        <p lang="en">In a browser at home: <code>http://&lt;server&gt;:9090</code>, with your NAS's or PC's address as <code>&lt;server&gt;</code> — for example <code>http://10.0.0.20:9090</code>. As long as there's no account, the sign-in page shows <b>Create the first account</b>. It's also right here:</p>
+        <p lang="nl-BE">In een browser thuis: <code>http://&lt;server&gt;:9090</code>, met het adres van je NAS of pc als <code>&lt;server&gt;</code> — bijvoorbeeld <code>http://10.0.0.20:9090</code>. Zolang er geen account is, toont de aanmeldpagina <b>Create the first account</b>. Je vindt het ook hier:</p>
+        <div class="code"><pre><code>http://&lt;server&gt;:9090/admin/setup</code></pre></div>
+      </li>
+
+      <li class="card step">
+        <h3><span class="num">5</span><span lang="en">Create the first account</span><span lang="nl-BE">Maak het eerste account</span></h3>
+        <p lang="en">A username, your name and a password of at least 10 characters. This first account is the admin: it opens <b>Admin</b> and adds the others. Once it's there, <code>/admin/setup</code> is gone. Do this right after the first start, before the app can be reached from outside your home: until then, whoever opens it first could claim it.</p>
+        <p lang="nl-BE">Een gebruikersnaam, je naam en een wachtwoord van minstens 10 tekens. Dit eerste account is de beheerder: het opent <b>Admin</b> en voegt de anderen toe. Daarna is <code>/admin/setup</code> verdwenen. Doe dit meteen na de eerste start, voor de app van buiten je huis bereikbaar is: tot dan kan wie hem eerst opent, hem opeisen.</p>
+      </li>
+
+      <li class="card step">
+        <h3><span class="num">6</span><span lang="en">Set up the household</span><span lang="nl-BE">Richt het huishouden in</span></h3>
+        <ul class="ticks" lang="en">
+          <li><b>Admin → Accounts</b>: an account for everyone else. Each of them signs in on their own phone or computer.</li>
+            <li><b>Admin → Shared accounts</b>: the joint account, the reserve and any other.</li>
+            <li><b>Admin → Budget settings</b>: which account pays the bills, how the money gets there each month, and your split.</li>
+            <li><b>Expenses → Add expense</b>: the bills.</li>
+            <li>On each device a short setup asks for a name, a colour and the net income. Everyone's own accounts and goals are in <b>Settings</b>.</li>
+          </ul>
+          <ul class="ticks" lang="nl-BE">
+            <li><b>Admin → Accounts</b>: een account voor ieder ander. Iedereen meldt zich aan op de eigen gsm of computer.</li>
+            <li><b>Admin → Shared accounts</b>: de gemeenschappelijke rekening, de reserve en eventuele andere.</li>
+            <li><b>Admin → Budget settings</b>: van welke rekening de facturen betaald worden, hoe het geld er elke maand komt, en jullie verdeelsleutel.</li>
+            <li><b>Expenses → Add expense</b>: de vaste kosten.</li>
+            <li>Op elk toestel vraagt een korte setup een naam, een kleur en het netto-inkomen. Ieders eigen rekeningen en doelen staan bij <b>Settings</b>.</li>
+          </ul>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ---------- Phones and https ---------- -->
+  <section class="sec" id="https">
+    <header class="sec-head">
+      <span class="crumb"><svg class="ic" aria-hidden="true"><use href="#i-smartphone"/></svg><span lang="en">On your phone</span><span lang="nl-BE">Op je gsm</span></span>
+      <h2><span lang="en">Phones and https</span><span lang="nl-BE">Gsm's en https</span></h2>
+      <p lang="en">On a phone, My Home becomes an app on the home screen that works offline too. Phones only allow that over https: put a reverse proxy with a certificate in front of it — Nginx Proxy Manager or Caddy, for example — that forwards to <code>http://&lt;server&gt;:9090</code>.</p>
+      <p lang="nl-BE">Op je gsm wordt My Home een app op je startscherm, die ook offline werkt. Gsm's laten dat enkel toe via https: zet er een reverse proxy met een certificaat voor — bijvoorbeeld Nginx Proxy Manager of Caddy — die doorstuurt naar <code>http://&lt;server&gt;:9090</code>.</p>
+    </header>
+    <div class="grid2">
+      <div class="card">
+        <h3><span lang="en">The proxy</span><span lang="nl-BE">De proxy</span></h3>
+        <p lang="en">With <b>Caddy</b>, it's three lines; Caddy fetches the certificate itself:</p>
+        <p lang="nl-BE">Met <b>Caddy</b> zijn het drie regels; Caddy haalt zelf het certificaat:</p>
+        <div class="code"><pre><code>myhome.example.org {
+    reverse_proxy 10.0.0.20:9090
+}</code></pre></div>
+        <p lang="en">With <b>Nginx Proxy Manager</b>: a Proxy Host for your address that forwards to <code>http://&lt;server&gt;:9090</code>, with an SSL certificate.</p>
+        <p lang="nl-BE">Met <b>Nginx Proxy Manager</b>: een Proxy Host voor je adres die doorstuurt naar <code>http://&lt;server&gt;:9090</code>, met een SSL-certificaat.</p>
+        <p class="aside" lang="en"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>The address needn't be reachable from the internet. With a certificate from a DNS challenge it can stay inside your home network: phones keep working offline and sync once they're home.</span></p>
+        <p class="aside" lang="nl-BE"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>Het adres hoeft niet bereikbaar te zijn vanaf het internet. Met een certificaat via een DNS-challenge blijft het binnen je thuisnetwerk: gsm's werken offline verder en synchroniseren zodra ze thuis zijn.</span></p>
+      </div>
+      <div class="card">
+        <h3><span lang="en">Then, in <code>.env</code></span><span lang="nl-BE">Daarna, in <code>.env</code></span></h3>
+        <div class="code"><pre><code>MH_SECURE_URL=https://myhome.example.org/
+TRUSTED_PROXIES=<i lang="en">your proxy's address</i><i lang="nl-BE">het adres van je proxy</i></code></pre></div>
+        <p lang="en"><code>MH_SECURE_URL</code>: the app's install page points phones to it.</p>
+        <p lang="nl-BE"><code>MH_SECURE_URL</code>: de installatiepagina van de app wijst gsm's dan de weg.</p>
+        <p lang="en"><code>TRUSTED_PROXIES</code>: your proxy tells the app that a request came over https, and from which device. The app only believes that from the addresses listed here — your proxy's, as the app sees it. Without it, the app takes every device for the proxy: the sign-in isn't marked secure, and a few wrong passwords lock everyone out for a while.</p>
+        <p lang="nl-BE"><code>TRUSTED_PROXIES</code>: je proxy vertelt de app dat een verzoek via https kwam, en van welk toestel. De app gelooft dat enkel van de adressen die hier staan — dat van je proxy, zoals de app het ziet. Staat het er niet, dan houdt de app elk toestel voor de proxy: de aanmelding geldt niet als veilig, en een paar foute wachtwoorden sluiten iedereen een tijdje buiten.</p>
+        <p lang="en">Not sure which address? Open <code>https://myhome.example.org/api/proxy-check</code>: it says OK, or which line to put in <code>.env</code>. After a change, run <code>docker compose up -d</code> again.</p>
+        <p lang="nl-BE">Twijfel je over het adres? Open <code>https://myhome.example.org/api/proxy-check</code>: daar staat OK, of welke regel je in <code>.env</code> zet. Na een wijziging doe je opnieuw <code>docker compose up -d</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- Updates and backups ---------- -->
+  <section class="sec" id="care">
+    <header class="sec-head">
+      <span class="crumb"><svg class="ic" aria-hidden="true"><use href="#i-refresh-cw"/></svg><span lang="en">Looking after it</span><span lang="nl-BE">Onderhoud</span></span>
+      <h2><span lang="en">Updates and backups</span><span lang="nl-BE">Updates en back-ups</span></h2>
+    </header>
+    <div class="grid2">
+      <div class="card">
+        <span class="chip blue"><svg class="ic" aria-hidden="true"><use href="#i-refresh-cw"/></svg></span>
+        <h3>Updates</h3>
+        <p lang="en"><code>compose.yaml</code> comes with an updater, Watchtower: every night at 04:00 it looks for a new version of My Home and installs it. It touches nothing but My Home's app — not your other containers. Rather do it yourself? Leave the updater out of <code>compose.yaml</code>, and now and then run:</p>
+        <p lang="nl-BE"><code>compose.yaml</code> heeft een updater aan boord, Watchtower: elke nacht om 04:00 kijkt die of er een nieuwe versie van My Home is en installeert ze. Hij raakt enkel de app van My Home aan — niet je andere containers. Doe je het liever zelf? Laat de updater weg uit <code>compose.yaml</code> en voer af en toe uit:</p>
+        <div class="code"><pre><code>docker compose pull &amp;&amp; docker compose up -d</code></pre></div>
+        <p lang="en">Phones and computers pick up the new version by themselves.</p>
+        <p lang="nl-BE">Gsm's en computers nemen de nieuwe versie vanzelf over.</p>
+      </div>
+      <div class="card">
+        <span class="chip green"><svg class="ic" aria-hidden="true"><use href="#i-archive"/></svg></span>
+        <h3><span lang="en">Backups</span><span lang="nl-BE">Back-ups</span></h3>
+        <p lang="en">Everything lives in three folders next to <code>compose.yaml</code>: <code>./postgres</code> (the database), <code>./data</code> (the app's own files) and <code>./backups</code>. Every night a dump of the database goes into <code>./backups</code>. Copy that folder somewhere else now and then — another disk, your NAS's backup app — together with <code>.env</code>.</p>
+        <p lang="nl-BE">Alles staat in drie mappen naast <code>compose.yaml</code>: <code>./postgres</code> (de databank), <code>./data</code> (de eigen bestanden van de app) en <code>./backups</code>. Elke nacht komt er een dump van de databank in <code>./backups</code>. Kopieer die map af en toe naar elders — een andere schijf, de back-up-app van je NAS — samen met <code>.env</code>.</p>
+        <p lang="en">In <b>Admin → Backups</b> you can also back up right now, download a copy or export everything.</p>
+        <p lang="nl-BE">Bij <b>Admin → Backups</b> maak je ook meteen een back-up, download je een kopie of exporteer je alles.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <a class="brand" href="#top"><img src="icon.svg" alt="" width="28" height="28">My Home</a>
+  <p lang="en">A household app, made for one home and shared with friends. The pictures show the demo household Alex &amp; Sam, with made-up amounts.</p>
+  <p lang="nl-BE">Een huishoud-app, gemaakt voor één thuis en gedeeld met vrienden. De afbeeldingen tonen het demohuishouden Alex &amp; Sam, met verzonnen bedragen.</p>
+  <p class="foot-links"><a href="https://github.com/CodingStukka/my-home">CodingStukka/my-home</a><code>ghcr.io/codingstukka/my-home</code></p>
+</footer>
+
+<script>
+  // The language switch without leaving the page, the pictures' descriptions in the language
+  // shown, and a Copy button on each block of commands. Everything works without this too
+  // (in English, the switch as plain links).
+  (function () {
+    var html = document.documentElement;
+    var COPY = { en: ["Copy", "Copied"], nl: ["Kopieer", "Gekopieerd"] };
+    var lang = function () { return html.lang === "nl-BE" ? "nl" : "en"; };
+
+    function apply(l) {
+      html.lang = l === "nl" ? "nl-BE" : "en";
+      document.title = html.getAttribute("data-title-" + l);
+      document.querySelectorAll("img[data-alt-nl]").forEach(function (img) {
+        if (!img.hasAttribute("data-alt-en")) img.setAttribute("data-alt-en", img.alt);
+        img.alt = img.getAttribute("data-alt-" + l);
+      });
+      document.querySelectorAll(".copy").forEach(function (b) {
+        b.querySelector("span").textContent = COPY[l][b.classList.contains("done") ? 1 : 0];
+      });
+    }
+    document.querySelectorAll(".lang a").forEach(function (a) {
+      a.addEventListener("click", function (e) {
+        e.preventDefault();
+        var l = a.getAttribute("data-lang");
+        apply(l);
+        // Opened from the file system, the address can't change: the page switches anyway.
+        try { history.replaceState(null, "", "?lang=" + l + location.hash); } catch (err) {}
+      });
+    });
+
+    document.querySelectorAll(".code").forEach(function (box) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "copy";
+      b.innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-copy"/></svg><span></span>';
+      b.addEventListener("click", function () {
+        // What's shown, in the language shown (the placeholders in <i> are either).
+        var code = box.querySelector("code").cloneNode(true);
+        code.querySelectorAll("[lang]").forEach(function (el) { if (el.getAttribute("lang") !== html.lang) el.remove(); });
+        var text = code.textContent;
+        var done = function () {
+          b.classList.add("done");
+          b.querySelector("span").textContent = COPY[lang()][1];
+          setTimeout(function () { b.classList.remove("done"); b.querySelector("span").textContent = COPY[lang()][0]; }, 1600);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, select);
+        else select();
+        function select() {
+          var r = document.createRange();
+          r.selectNodeContents(box.querySelector("code"));
+          var s = getSelection();
+          s.removeAllRanges();
+          s.addRange(r);
+        }
+      });
+      box.appendChild(b);
+    });
+    apply(lang());
+  })();
+</script>
+</body>
+</html>

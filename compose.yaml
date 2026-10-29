@@ -1,0 +1,125 @@
+# My Home — a household budget on your own server: https://codingstukka.github.io/my-home/
+#
+# Put this file in a folder of its own, with the file .env next to it (copy .env.example and
+# fill in the two secrets), then:
+#
+#   docker compose up -d
+#
+# and open http://<this machine>:9090. The first account you create is the admin.
+#
+# In that folder, next to this file:
+#   .env       the settings: two secrets, and a few optional ones (.env.example)
+#   data/      the app's own folder: its daily copies of the data (data/backups)
+#   postgres/  the database (don't touch it while it runs)
+#   backups/   the nightly database dumps (myhome-YYYY-MM-DD.sql.gz, the newest 30)
+#
+# Phones need https to install the app and to use it offline: put a reverse proxy in front
+# (Nginx Proxy Manager, Caddy, Traefik, …) that forwards to this machine's port 9090.
+services:
+  # The app: the PWA's files, the API and the admin area (FrankenPHP + Symfony).
+  my-home:
+    image: ghcr.io/codingstukka/my-home:latest
+    container_name: my-home
+    ports:
+      - "${MH_PORT:-9090}:8080"
+    volumes:
+      - ./data:/data
+      # The database dumps, for the admin area (Admin → Backups, System status). Read-only.
+      - ./backups:/data/backups/postgres:ro
+    environment:
+      DATABASE_URL: "postgresql://myhome:${POSTGRES_PASSWORD:?is missing: copy .env.example to .env next to compose.yaml and fill it in}@db:5432/myhome?serverVersion=18&charset=utf8"
+      APP_SECRET: "${APP_SECRET:?is missing: copy .env.example to .env next to compose.yaml and fill it in}"
+      # The reverse proxy's address as the app sees it: only requests from there may say
+      # "this was https" (Secure cookie) and "this came from device X" (the sign-in limit).
+      # http://<this machine>:9090/api/proxy-check says what to put (.env.example).
+      TRUSTED_PROXIES: "${TRUSTED_PROXIES:-127.0.0.1}"
+      # The app's https address, offered by the install page opened as http:// (optional).
+      MH_SECURE_URL: "${MH_SECURE_URL:-}"
+      TZ: "${TZ:-Europe/Brussels}"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.enable=true # the updater below may update this one …
+      - com.centurylinklabs.watchtower.scope=my-home # … and only it, whatever else runs here
+
+  # The database: PostgreSQL 18. The updater leaves it alone; `docker compose pull` brings
+  # its minor updates.
+  db:
+    image: postgres:18-alpine
+    container_name: my-home-db
+    environment:
+      POSTGRES_DB: myhome
+      POSTGRES_USER: myhome
+      # Only read when the database is created on the very first start. Don't change it later.
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?is missing: copy .env.example to .env next to compose.yaml and fill it in}"
+      TZ: "${TZ:-Europe/Brussels}"
+    volumes:
+      - ./postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "myhome", "-d", "myhome"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 1m
+    stop_grace_period: 1m
+    restart: unless-stopped
+
+  # Every night after 3:00 a dump of the database into backups/ (myhome-YYYY-MM-DD.sql.gz),
+  # the newest 30 kept. The same image as the database, so its pg_dump always fits.
+  backup:
+    image: postgres:18-alpine
+    container_name: my-home-backup
+    environment:
+      PGHOST: db
+      PGUSER: myhome
+      PGDATABASE: myhome
+      PGPASSWORD: "${POSTGRES_PASSWORD:?is missing: copy .env.example to .env next to compose.yaml and fill it in}"
+      TZ: "${TZ:-Europe/Brussels}"
+    volumes:
+      - ./backups:/backups
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Database dumps: every night after 3:00 into backups/, the newest 30 kept."
+        while :; do
+          sleep "$${BACKUP_CHECK_SECONDS:-600}"
+          day=$$(date +%F)
+          file="/backups/myhome-$$day.sql.gz"
+          [ -s "$$file" ] && continue
+          [ "$$(date +%H)" -ge 3 ] || continue
+          if pg_dump --no-owner --clean --if-exists --compress=gzip:6 -f "$$file.part"; then
+            mv "$$file.part" "$$file"
+            echo "$$(date '+%F %T') Dump written: backups/myhome-$$day.sql.gz"
+            ls -1 /backups/myhome-*.sql.gz | sort -r | tail -n +31 | xargs -r rm -f
+          else
+            rm -f "$$file.part"
+            echo "$$(date '+%F %T') Dump FAILED, trying again in a few minutes."
+          fi
+        done
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Updates (optional): every night at 4:00 it looks for a new version of the app and, if
+  # there is one, restarts the app with it. Only the app (its labels above: its scope
+  # "my-home", so other containers on this machine with Watchtower's labels stay as they
+  # are); the data is never touched. The image is public, so no sign-in. Rather update by
+  # hand? Remove this service and run `docker compose pull && docker compose up -d` now and
+  # then.
+  updater:
+    image: nickfedor/watchtower:latest
+    container_name: my-home-updater
+    labels:
+      - com.centurylinklabs.watchtower.scope=my-home
+    environment:
+      WATCHTOWER_LABEL_ENABLE: "true"
+      WATCHTOWER_SCOPE: my-home
+      WATCHTOWER_SCHEDULE: "0 0 4 * * *"
+      WATCHTOWER_CLEANUP: "true"
+      TZ: "${TZ:-Europe/Brussels}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
